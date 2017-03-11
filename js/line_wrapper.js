@@ -88,6 +88,9 @@
             while (w > this.spaceLeft && l > 0) {
               w = this.wordWidth(word.slice(0, --l));
             }
+            if (l === 0) {
+              break;
+            }
             fbk.required = l < word.length;
             shouldContinue = fn(word.slice(0, l), w, fbk, lbk);
             lbk = {
