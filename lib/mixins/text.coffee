@@ -68,6 +68,9 @@ module.exports =
 
     return height
 
+  currentFontMetrics: () ->
+    {ascender: (@_font.ascender/ 1000 * @_fontSize), descender: (@_font.descender/ 1000 * @_fontSize), gap: @_lineGap, lineHeight: @currentLineHeight(true)}
+
   list: (list, x, y, options, wrapper) ->
     options = @_initOptions(x, y, options)
 
