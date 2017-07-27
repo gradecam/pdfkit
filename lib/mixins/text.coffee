@@ -46,6 +46,11 @@ module.exports =
 
     return this
 
+  rawText: (text, x, y, options) ->
+    options = @_initOptions(x, y, options)
+    @_rawFragment text, x, y, options
+    return this
+
   text: (text, x, y, options) ->
     @_text text, x, y, options, @_line.bind(this)
 
@@ -310,6 +315,60 @@ module.exports =
 
     # Flush any remaining commands
     flush i
+
+    # end the text object
+    @addContent "ET"
+
+    # restore flipped coordinate system
+    @restore()
+
+  _rawFragment: (text, x, y, options) ->
+    text = ('' + text).replace(/\n/g, '')
+    return if text.length is 0
+
+    # flip coordinate system
+    @save()
+    @transform 1, 0, 0, -1, 0, @page.height
+    y = @page.height - y - (@_font.ascender / 1000 * @_fontSize)
+
+    # add current font to page if necessary
+    @page.fonts[@_font.id] ?= @_font.ref()
+
+    # begin the text object
+    @addContent "BT"
+
+    # text position
+    @addContent "1 0 0 1 #{number(x)} #{number(y)} Tm"
+
+    # font and font size
+    @addContent "/#{@_font.id} #{number(@_fontSize)} Tf"
+
+    [encoded, positions] = @_font.encode(text, options.features)
+
+    scale = @_fontSize / 1000
+    commands = []
+    last = 0
+    hadOffset = no
+
+    # Adds a segment of text to the TJ command buffer
+    addSegment = (cur) =>
+      if last < cur
+        hex = encoded.slice(last, cur).join ''
+        advance = positions[cur - 1].xAdvance - positions[cur - 1].advanceWidth
+        commands.push "<#{hex}> #{number(-advance)}"
+
+      last = cur
+
+    # Flushes the current TJ commands to the output stream
+    flush = (i) =>
+      addSegment i
+
+      if commands.length > 0
+        @addContent "[#{commands.join ' '}] TJ"
+        commands.length = 0
+
+    # Flush any remaining commands
+    flush positions.length
 
     # end the text object
     @addContent "ET"
