@@ -55,6 +55,11 @@
       }
       return this;
     },
+    rawText: function(text, x, y, options) {
+      options = this._initOptions(x, y, options);
+      this._rawFragment(text, x, y, options);
+      return this;
+    },
     text: function(text, x, y, options) {
       return this._text(text, x, y, options, this._line.bind(this));
     },
@@ -341,6 +346,50 @@
         x += pos.xAdvance * scale;
       }
       flush(i);
+      this.addContent("ET");
+      return this.restore();
+    },
+    _rawFragment: function(text, x, y, options) {
+      var addSegment, base, commands, encoded, flush, hadOffset, last, name, positions, ref, scale;
+      text = ('' + text).replace(/\n/g, '');
+      if (text.length === 0) {
+        return;
+      }
+      this.save();
+      this.transform(1, 0, 0, -1, 0, this.page.height);
+      y = this.page.height - y - (this._font.ascender / 1000 * this._fontSize);
+      if ((base = this.page.fonts)[name = this._font.id] == null) {
+        base[name] = this._font.ref();
+      }
+      this.addContent("BT");
+      this.addContent("1 0 0 1 " + (number(x)) + " " + (number(y)) + " Tm");
+      this.addContent("/" + this._font.id + " " + (number(this._fontSize)) + " Tf");
+      ref = this._font.encode(text, options.features), encoded = ref[0], positions = ref[1];
+      scale = this._fontSize / 1000;
+      commands = [];
+      last = 0;
+      hadOffset = false;
+      addSegment = (function(_this) {
+        return function(cur) {
+          var advance, hex;
+          if (last < cur) {
+            hex = encoded.slice(last, cur).join('');
+            advance = positions[cur - 1].xAdvance - positions[cur - 1].advanceWidth;
+            commands.push("<" + hex + "> " + (number(-advance)));
+          }
+          return last = cur;
+        };
+      })(this);
+      flush = (function(_this) {
+        return function(i) {
+          addSegment(i);
+          if (commands.length > 0) {
+            _this.addContent("[" + (commands.join(' ')) + "] TJ");
+            return commands.length = 0;
+          }
+        };
+      })(this);
+      flush(positions.length);
       this.addContent("ET");
       return this.restore();
     }
