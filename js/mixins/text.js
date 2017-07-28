@@ -350,11 +350,12 @@
       return this.restore();
     },
     _rawFragment: function(text, x, y, options) {
-      var addSegment, base, commands, encoded, flush, hadOffset, last, name, positions, ref, scale;
+      var addSegment, base, characterSpacing, commands, encoded, flush, hadOffset, last, name, positions, ref, scale;
       text = ('' + text).replace(/\n/g, '');
       if (text.length === 0) {
         return;
       }
+      characterSpacing = options.characterSpacing || 0;
       this.save();
       this.transform(1, 0, 0, -1, 0, this.page.height);
       y = this.page.height - y - (this._font.ascender / 1000 * this._fontSize);
@@ -364,6 +365,9 @@
       this.addContent("BT");
       this.addContent("1 0 0 1 " + (number(x)) + " " + (number(y)) + " Tm");
       this.addContent("/" + this._font.id + " " + (number(this._fontSize)) + " Tf");
+      if (characterSpacing) {
+        this.addContent((number(characterSpacing)) + " Tc");
+      }
       ref = this._font.encode(text, options.features), encoded = ref[0], positions = ref[1];
       scale = this._fontSize / 1000;
       commands = [];
