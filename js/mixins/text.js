@@ -369,7 +369,8 @@
             x += options.width - textWidth;
             break;
           case 'center':
-            x += options.width / 2 - options.textWidth / 2;
+            textWidth = this.widthOfString(text.replace(/\s+$/, ''), options);
+            x += options.width / 2 - textWidth / 2;
             break;
           case 'justify':
             words = text.trim().split(/\s+/);

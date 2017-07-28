@@ -340,7 +340,8 @@ module.exports =
           x += options.width - textWidth
 
         when 'center'
-          x += options.width / 2 - options.textWidth / 2
+          textWidth = @widthOfString text.replace(/\s+$/, ''), options
+          x += options.width / 2 - textWidth / 2
 
         when 'justify'
           # calculate the word spacing value
