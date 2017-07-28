@@ -331,6 +331,24 @@ module.exports =
     useCache = false
     cacheKey = "#{@_font.id}" if enableCache
 
+    align = options.align or 'left'
+    # text alignments
+    if options.width
+      switch align
+        when 'right'
+          textWidth = @widthOfString text.replace(/\s+$/, ''), options
+          x += options.width - textWidth
+
+        when 'center'
+          x += options.width / 2 - options.textWidth / 2
+
+        when 'justify'
+          # calculate the word spacing value
+          words = text.trim().split(/\s+/)
+          textWidth = @widthOfString(text.replace(/\s+/g, ''), options)
+          spaceWidth = @widthOfString(' ') + characterSpacing
+          wordSpacing = Math.max 0, (options.width - textWidth) / Math.max(1, words.length - 1) - spaceWidth
+
     if enableCache
       @_fontGlyphCache = {} if !@_fontGlyphCache
       if @_fontGlyphCache[cacheKey]
