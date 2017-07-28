@@ -326,6 +326,8 @@ module.exports =
     text = ('' + text).replace(/\n/g, '')
     return if text.length is 0
 
+    characterSpacing = options.characterSpacing or 0
+
     # flip coordinate system
     @save()
     @transform 1, 0, 0, -1, 0, @page.height
@@ -342,6 +344,9 @@ module.exports =
 
     # font and font size
     @addContent "/#{@_font.id} #{number(@_fontSize)} Tf"
+
+    # Character spacing
+    @addContent "#{number(characterSpacing)} Tc" if characterSpacing
 
     [encoded, positions] = @_font.encode(text, options.features)
 
