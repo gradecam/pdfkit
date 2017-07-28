@@ -327,6 +327,19 @@ module.exports =
     return if text.length is 0
 
     characterSpacing = options.characterSpacing or 0
+    enableCache = options.enableCache or false
+    useCache = false
+    cacheKey = "#{@_font.id}" if enableCache
+
+    if enableCache
+      @_fontGlyphCache = {} if !@_fontGlyphCache
+      if @_fontGlyphCache[cacheKey]
+        useCache = true
+        for i in [0..text.length-1]
+          useCache = false if !@_fontGlyphCache[cacheKey][text[i]]
+      else
+        useCache = false
+        @_fontGlyphCache[cacheKey] = {}
 
     # flip coordinate system
     @save()
@@ -348,32 +361,38 @@ module.exports =
     # Character spacing
     @addContent "#{number(characterSpacing)} Tc" if characterSpacing
 
-    [encoded, positions] = @_font.encode(text, options.features)
+    if useCache
+      glyphString = (@_fontGlyphCache[cacheKey][text[i]] for i in [0..text.length-1]).join('')
+      @addContent "[<#{glyphString}> 0] TJ"
+    else
+      [encoded, positions] = @_font.encode(text, options.features)
+      if enableCache
+        encoded.forEach (val, idx) => @_fontGlyphCache[cacheKey][text[idx]] = val
 
-    scale = @_fontSize / 1000
-    commands = []
-    last = 0
-    hadOffset = no
+      scale = @_fontSize / 1000
+      commands = []
+      last = 0
+      hadOffset = no
 
-    # Adds a segment of text to the TJ command buffer
-    addSegment = (cur) =>
-      if last < cur
-        hex = encoded.slice(last, cur).join ''
-        advance = positions[cur - 1].xAdvance - positions[cur - 1].advanceWidth
-        commands.push "<#{hex}> #{number(-advance)}"
+      # Adds a segment of text to the TJ command buffer
+      addSegment = (cur) =>
+        if last < cur
+          hex = encoded.slice(last, cur).join ''
+          advance = positions[cur - 1].xAdvance - positions[cur - 1].advanceWidth
+          commands.push "<#{hex}> #{number(-advance)}"
 
-      last = cur
+        last = cur
 
-    # Flushes the current TJ commands to the output stream
-    flush = (i) =>
-      addSegment i
+      # Flushes the current TJ commands to the output stream
+      flush = (i) =>
+        addSegment i
 
-      if commands.length > 0
-        @addContent "[#{commands.join ' '}] TJ"
-        commands.length = 0
+        if commands.length > 0
+          @addContent "[#{commands.join ' '}] TJ"
+          commands.length = 0
 
-    # Flush any remaining commands
-    flush positions.length
+      # Flush any remaining commands
+      flush positions.length
 
     # end the text object
     @addContent "ET"
